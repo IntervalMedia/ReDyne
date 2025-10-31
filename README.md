@@ -105,6 +105,16 @@ ReDyne is a sophisticated, native iOS application for reverse engineering and an
 - **Signature Type**: Ad-hoc vs Full signing detection
 - **Certificate Chain**: Signing authority tracking
 
+### 🔢 Hex Viewer
+- **Hexadecimal Display**: View raw binary data in hex format with ASCII representation
+- **Address Navigation**: Jump to specific addresses, functions, or sections
+- **Smart Annotations**: Display section names and data type information
+- **Context Menus**: Long-press for quick actions (copy address, go to hex viewer)
+- **Visual Filters**: Filter by code sections, data sections, or show all
+- **Export Capability**: Export hex dumps in text or binary format
+- **Interactive Selection**: Tap rows to view detailed address information
+- **Search Support**: Search by hexadecimal address notation
+
 ### 🎨 Export Formats
 - **TXT**: Clean, readable text format
 - **JSON**: Structured JSON with full metadata
@@ -239,6 +249,15 @@ ReDyne is a sophisticated, native iOS application for reverse engineering and an
    - **CFG**: Interactive control flow graphs
 
 ### Advanced Features
+
+**Hex Viewer**
+- View binary data in hexadecimal format with ASCII representation
+- Navigate to specific addresses or functions
+- Filter by code/data sections
+- Toggle annotations to show section information
+- Export hex dumps in text or binary format
+- Long-press on rows to access context menu
+- Search for specific addresses using hex notation (0x...)
 
 **Control Flow Graphs**
 - Tap any function to visualize its CFG
@@ -425,10 +444,10 @@ SOFTWARE.
 - [x] Pseudocode generation
 - [x] Function renaming
 - [x] Binary patching
+- [x] Hex viewer with navigation and filtering
 - [ ] Class Dump (60% done)
 - [ ] Type reconstruction (50% done)
 - [ ] Comment annotations
-- [ ] Hex editor
 - [ ] Memory dump analysis
 - [ ] Universal Format support
 - [ ] Network analysis
