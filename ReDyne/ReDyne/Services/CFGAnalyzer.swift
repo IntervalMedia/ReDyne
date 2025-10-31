@@ -162,5 +162,58 @@ import Foundation
             edges: edges
         )
     }
+    
+    /// Validates a CFG for correctness
+    /// - Parameter cfg: The CFG to validate
+    /// - Returns: Array of validation issues found (empty if valid)
+    static func validateCFG(_ cfg: FunctionCFG) -> [String] {
+        var issues: [String] = []
+        
+        // Check for nodes without edges
+        let nodesWithEdges = Set(cfg.edges.flatMap { [$0.from, $0.to] })
+        for (index, node) in cfg.nodes.enumerated() {
+            if !nodesWithEdges.contains(index) && index != 0 && cfg.nodes.count > 1 {
+                issues.append("Node \(index) at address 0x\(String(format: "%llx", node.startAddress)) is isolated")
+            }
+        }
+        
+        // Check for edges pointing to non-existent nodes
+        for edge in cfg.edges {
+            if edge.from >= cfg.nodes.count {
+                issues.append("Edge has invalid source node: \(edge.from)")
+            }
+            if edge.to >= cfg.nodes.count {
+                issues.append("Edge has invalid target node: \(edge.to)")
+            }
+        }
+        
+        // Check for empty nodes
+        for (index, node) in cfg.nodes.enumerated() {
+            if node.instructions.isEmpty {
+                issues.append("Node \(index) has no instructions")
+            }
+        }
+        
+        return issues
+    }
+    
+    /// Calculates complexity metrics for a CFG
+    /// - Parameter cfg: The CFG to analyze
+    /// - Returns: Dictionary of complexity metrics
+    static func calculateComplexity(_ cfg: FunctionCFG) -> [String: Int] {
+        let cyclomaticComplexity = cfg.edges.count - cfg.nodes.count + 2
+        let conditionalBranches = cfg.edges.filter { 
+            $0.edgeType == .trueBranch || $0.edgeType == .falseBranch 
+        }.count
+        
+        return [
+            "nodes": cfg.nodes.count,
+            "edges": cfg.edges.count,
+            "cyclomaticComplexity": cyclomaticComplexity,
+            "conditionalBranches": conditionalBranches,
+            "entryNodes": cfg.nodes.filter { $0.nodeType == .entry }.count,
+            "exitNodes": cfg.nodes.filter { $0.nodeType == .exit }.count
+        ]
+    }
 }
 
