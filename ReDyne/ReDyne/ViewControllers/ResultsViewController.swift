@@ -43,11 +43,15 @@ class ResultsViewController: UIViewController {
     }()
     
     private lazy var disassemblyViewController: DisassemblyViewController = {
-        return DisassemblyViewController(instructions: output.instructions)
+        let vc = DisassemblyViewController(instructions: output.instructions)
+        vc.parentResultsVC = self
+        return vc
     }()
     
     private lazy var functionsViewController: FunctionsViewController = {
-        return FunctionsViewController(functions: output.functions)
+        let vc = FunctionsViewController(functions: output.functions)
+        vc.parentResultsVC = self
+        return vc
     }()
     
     private lazy var xrefsViewController: XrefsViewController? = {
@@ -350,6 +354,20 @@ class ResultsViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
+    
+    // MARK: - Hex Viewer Navigation
+    
+    func showHexViewer(at address: UInt64) {
+        if let hexViewerVC = hexViewerViewController {
+            navigationController?.pushViewController(hexViewerVC, animated: true)
+            // Give the view controller time to load, then scroll to address
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                hexViewerVC.scrollToAddress(address)
+            }
+        } else {
+            showAlert(title: "Hex Viewer Unavailable", message: "Unable to open hex viewer for this binary")
+        }
+    }
 }
 
 // MARK: - UISearchBarDelegate
@@ -623,6 +641,7 @@ class StringsViewController: UITableViewController {
 class DisassemblyViewController: UITableViewController {
     private var instructions: [InstructionModel]
     private var filteredInstructions: [InstructionModel]
+    weak var parentResultsVC: ResultsViewController?
     
     init(instructions: [InstructionModel]) {
         self.instructions = instructions
@@ -663,11 +682,28 @@ class DisassemblyViewController: UITableViewController {
         
         return cell
     }
+    
+    override func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+        let instruction = filteredInstructions[indexPath.row]
+        
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+            let goToHexAction = UIAction(title: "Go to Address in Hex Viewer", image: UIImage(systemName: "number.square")) { _ in
+                self?.parentResultsVC?.showHexViewer(at: instruction.address)
+            }
+            
+            let copyAddressAction = UIAction(title: "Copy Address", image: UIImage(systemName: "doc.on.doc")) { _ in
+                UIPasteboard.general.string = Constants.formatAddress(instruction.address)
+            }
+            
+            return UIMenu(title: "", children: [goToHexAction, copyAddressAction])
+        }
+    }
 }
 
 class FunctionsViewController: UITableViewController {
     private var functions: [FunctionModel]
     private var filteredFunctions: [FunctionModel]
+    weak var parentResultsVC: ResultsViewController?
     
     init(functions: [FunctionModel]) {
         self.functions = functions.sortedByAddress()
@@ -715,6 +751,22 @@ class FunctionsViewController: UITableViewController {
         
         let detailVC = FunctionDetailViewController(function: function)
         navigationController?.pushViewController(detailVC, animated: true)
+    }
+    
+    override func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+        let function = filteredFunctions[indexPath.row]
+        
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+            let goToHexAction = UIAction(title: "Go to Function in Hex Viewer", image: UIImage(systemName: "number.square")) { _ in
+                self?.parentResultsVC?.showHexViewer(at: function.startAddress)
+            }
+            
+            let copyAddressAction = UIAction(title: "Copy Address", image: UIImage(systemName: "doc.on.doc")) { _ in
+                UIPasteboard.general.string = Constants.formatAddress(function.startAddress)
+            }
+            
+            return UIMenu(title: "", children: [goToHexAction, copyAddressAction])
+        }
     }
 }
 

@@ -359,7 +359,7 @@ class HexViewerViewController: UIViewController, UITableViewDelegate, UITableVie
         return UInt64(cleanText, radix: 16)
     }
     
-    private func scrollToAddress(_ address: UInt64) {
+    func scrollToAddress(_ address: UInt64) {
         guard let data = filteredData else { return }
         
         // Calculate offset from current base address
