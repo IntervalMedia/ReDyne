@@ -52,6 +52,23 @@ class HexViewerViewController: UIViewController, UITableViewDelegate, UITableVie
         return label
     }()
     
+    private lazy var annotationToggle: UISwitch = {
+        let toggle = UISwitch()
+        toggle.translatesAutoresizingMaskIntoConstraints = false
+        toggle.isOn = true
+        toggle.addTarget(self, action: #selector(toggleAnnotations), for: .valueChanged)
+        return toggle
+    }()
+    
+    private lazy var annotationLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = "Annotations"
+        label.font = .systemFont(ofSize: 13, weight: .regular)
+        label.textColor = .label
+        return label
+    }()
+    
     // MARK: - Properties
     
     private let fileURL: URL
@@ -60,6 +77,7 @@ class HexViewerViewController: UIViewController, UITableViewDelegate, UITableVie
     private var currentOffset: UInt64 = 0
     private let bytesPerRow = 16
     private var highlightedRange: Range<Int>?
+    private var showAnnotations = true
     
     // Filter state
     private var activeFilters: Set<HexViewerFilter> = []
@@ -108,8 +126,14 @@ class HexViewerViewController: UIViewController, UITableViewDelegate, UITableVie
         toolbar.spacing = Constants.UI.standardSpacing
         toolbar.distribution = .fillEqually
         
+        let annotationStack = UIStackView(arrangedSubviews: [annotationLabel, annotationToggle])
+        annotationStack.translatesAutoresizingMaskIntoConstraints = false
+        annotationStack.axis = .horizontal
+        annotationStack.spacing = Constants.UI.compactSpacing
+        
         view.addSubview(searchBar)
         view.addSubview(toolbar)
+        view.addSubview(annotationStack)
         view.addSubview(tableView)
         view.addSubview(infoLabel)
         
@@ -123,7 +147,10 @@ class HexViewerViewController: UIViewController, UITableViewDelegate, UITableVie
             toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -Constants.UI.standardSpacing),
             toolbar.heightAnchor.constraint(equalToConstant: 44),
             
-            tableView.topAnchor.constraint(equalTo: toolbar.bottomAnchor, constant: Constants.UI.compactSpacing),
+            annotationStack.topAnchor.constraint(equalTo: toolbar.bottomAnchor, constant: Constants.UI.compactSpacing),
+            annotationStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            
+            tableView.topAnchor.constraint(equalTo: annotationStack.bottomAnchor, constant: Constants.UI.compactSpacing),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: infoLabel.topAnchor),
@@ -145,7 +172,14 @@ class HexViewerViewController: UIViewController, UITableViewDelegate, UITableVie
             action: #selector(exportHexDump)
         )
         
-        navigationItem.rightBarButtonItem = exportButton
+        let legendButton = UIBarButtonItem(
+            image: UIImage(systemName: "info.circle"),
+            style: .plain,
+            target: self,
+            action: #selector(showLegend)
+        )
+        
+        navigationItem.rightBarButtonItems = [exportButton, legendButton]
     }
     
     // MARK: - Data Loading
@@ -202,7 +236,7 @@ class HexViewerViewController: UIViewController, UITableViewDelegate, UITableVie
         let sectionInfo = findSection(for: address)
         
         cell.configure(with: rowData, address: address, bytesPerRow: bytesPerRow, 
-                      isHighlighted: isHighlighted, sectionName: sectionInfo?.sectionName)
+                      isHighlighted: isHighlighted, sectionName: showAnnotations ? sectionInfo?.sectionName : nil)
         
         return cell
     }
@@ -216,6 +250,13 @@ class HexViewerViewController: UIViewController, UITableViewDelegate, UITableVie
         let address = currentOffset + UInt64(offset)
         
         showAddressDetails(address: address, offset: offset)
+    }
+    
+    // MARK: - Annotation Control
+    
+    @objc private func toggleAnnotations() {
+        showAnnotations = annotationToggle.isOn
+        tableView.reloadData()
     }
     
     // MARK: - Helper Methods
@@ -261,6 +302,34 @@ class HexViewerViewController: UIViewController, UITableViewDelegate, UITableVie
         alert.addAction(UIAlertAction(title: "Copy Address", style: .default) { _ in
             UIPasteboard.general.string = Constants.formatAddress(address)
         })
+        present(alert, animated: true)
+    }
+    
+    @objc private func showLegend() {
+        let legend = """
+        Hex Viewer Legend
+        
+        📍 Address Column: Memory address in hexadecimal
+        🔢 Hex Column: Raw byte values in hex
+        📝 ASCII Column: Printable characters (. for non-printable)
+        
+        Annotations:
+        • Section names show which section contains the data
+        • Highlighted rows indicate current selection
+        • Use "Go To" to navigate by address, function, or section
+        
+        Filters:
+        • Show Code Sections: Display only executable code
+        • Show Data Sections: Display only data sections
+        
+        Tips:
+        • Long-press on a row for context menu
+        • Use the search bar to jump to specific addresses
+        • Export hex dump to text or binary format
+        """
+        
+        let alert = UIAlertController(title: "Hex Viewer Help", message: legend, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
     
