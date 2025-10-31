@@ -1,9 +1,14 @@
 import Foundation
 
+/// Analyzer for Objective-C runtime information in Mach-O binaries
+/// Extracts classes, methods, properties, ivars, categories, and protocols
 @objc class ObjCAnalyzer: NSObject {
     
     // MARK: - Public Analysis Method
     
+    /// Analyzes Objective-C runtime structures from a Mach-O binary
+    /// - Parameter machOContext: Opaque pointer to the MachO parsing context
+    /// - Returns: Analysis result containing ObjC classes, categories, and protocols, or nil if no runtime data
     @objc static func analyze(machOContext: OpaquePointer) -> ObjCAnalysisResult? {
         print("Starting ObjC runtime analysis...")
         let startTime = CFAbsoluteTimeGetCurrent()
@@ -72,6 +77,9 @@ import Foundation
     
     // MARK: - Conversion Methods
     
+    /// Converts C class info structure to Swift model
+    /// - Parameter classInfo: C structure containing class data
+    /// - Returns: Swift ObjCClass model or nil if conversion fails
     private static func convertClass(_ classInfo: ObjCClassInfo) -> ObjCClass? {
         var classInfoCopy = classInfo
         let name = withUnsafePointer(to: &classInfoCopy.name.0) { String(cString: $0) }
@@ -128,6 +136,9 @@ import Foundation
         )
     }
     
+    /// Converts C method info structure to Swift model
+    /// - Parameter methodInfo: C structure containing method data
+    /// - Returns: Swift ObjCMethod model or nil if conversion fails
     private static func convertMethod(_ methodInfo: ObjCMethodInfo) -> ObjCMethod? {
         var methodInfoCopy = methodInfo
         let name = withUnsafePointer(to: &methodInfoCopy.name.0) { String(cString: $0) }
@@ -143,6 +154,9 @@ import Foundation
         )
     }
     
+    /// Converts C property info structure to Swift model
+    /// - Parameter propertyInfo: C structure containing property data
+    /// - Returns: Swift ObjCProperty model or nil if conversion fails
     private static func convertProperty(_ propertyInfo: ObjCPropertyInfo) -> ObjCProperty? {
         var propertyInfoCopy = propertyInfo
         let name = withUnsafePointer(to: &propertyInfoCopy.name.0) { String(cString: $0) }
@@ -153,6 +167,9 @@ import Foundation
         return ObjCProperty(name: name, attributes: attributes)
     }
     
+    /// Converts C ivar info structure to Swift model
+    /// - Parameter ivarInfo: C structure containing ivar data
+    /// - Returns: Swift ObjCIvar model or nil if conversion fails
     private static func convertIvar(_ ivarInfo: ObjCIvarInfo) -> ObjCIvar? {
         var ivarInfoCopy = ivarInfo
         let name = withUnsafePointer(to: &ivarInfoCopy.name.0) { String(cString: $0) }
@@ -163,6 +180,9 @@ import Foundation
         return ObjCIvar(name: name, type: type, offset: ivarInfo.offset)
     }
     
+    /// Converts C category info structure to Swift model
+    /// - Parameter categoryInfo: C structure containing category data
+    /// - Returns: Swift ObjCCategory model or nil if conversion fails
     private static func convertCategory(_ categoryInfo: ObjCCategoryInfo) -> ObjCCategory? {
         var categoryInfoCopy = categoryInfo
         let name = withUnsafePointer(to: &categoryInfoCopy.name.0) { String(cString: $0) }
@@ -209,6 +229,9 @@ import Foundation
         )
     }
     
+    /// Converts C protocol info structure to Swift model
+    /// - Parameter protocolInfo: C structure containing protocol data
+    /// - Returns: Swift ObjCProtocol model or nil if conversion fails
     private static func convertProtocol(_ protocolInfo: ObjCProtocolInfo) -> ObjCProtocol? {
         var protocolInfoCopy = protocolInfo
         let name = withUnsafePointer(to: &protocolInfoCopy.name.0) { String(cString: $0) }

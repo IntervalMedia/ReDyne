@@ -1,5 +1,7 @@
 import Foundation
 
+/// Service for managing binary patch sets
+/// Provides thread-safe operations for creating, updating, and applying patches to binary files
 final class BinaryPatchService {
     static let shared = BinaryPatchService()
 
@@ -14,7 +16,9 @@ final class BinaryPatchService {
     private init() {}
 
     // MARK: - Public API
-
+    
+    /// Loads all patch sets from disk into memory
+    /// This method is thread-safe and only loads once
     func loadPatchSets() {
         queue.sync {
             guard !cacheLoaded else { return }
@@ -23,13 +27,18 @@ final class BinaryPatchService {
             cacheLoaded = true
         }
     }
-
+    
+    /// Returns all patch sets sorted by update date (newest first)
+    /// - Returns: Array of patch sets
     func getAllPatchSets() -> [BinaryPatchSet] {
         queue.sync {
             patchSets.values.sorted { $0.updatedAt > $1.updatedAt }
         }
     }
-
+    
+    /// Retrieves a specific patch set by ID
+    /// - Parameter id: UUID of the patch set
+    /// - Returns: The patch set if found, nil otherwise
     func getPatchSet(with id: UUID) -> BinaryPatchSet? {
         queue.sync { patchSets[id] }
     }
@@ -279,12 +288,46 @@ final class BinaryPatchService {
             return try encoder.encode(patchSet)
         }
     }
-
+    
+    /// Imports a patch set from JSON data
+    /// - Parameter data: JSON data containing the patch set
+    /// - Throws: Error if decoding or adding the patch set fails
     func importPatchSet(from data: Data) throws {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let patchSet = try decoder.decode(BinaryPatchSet.self, from: data)
         try addPatchSet(patchSet)
+    }
+    
+    /// Gets statistics about all patch sets
+    /// - Returns: Dictionary containing various statistics
+    func getStatistics() -> [String: Int] {
+        return queue.sync {
+            let totalPatches = patchSets.values.reduce(0) { $0 + $1.patches.count }
+            let enabledPatches = patchSets.values.reduce(0) { $0 + $1.patches.filter { $0.enabled }.count }
+            let verifiedPatches = patchSets.values.reduce(0) { $0 + $1.patches.filter { $0.status == .verified }.count }
+            
+            return [
+                "totalPatchSets": patchSets.count,
+                "totalPatches": totalPatches,
+                "enabledPatches": enabledPatches,
+                "verifiedPatches": verifiedPatches
+            ]
+        }
+    }
+    
+    /// Finds all patch sets targeting a specific binary
+    /// - Parameter binaryPath: Path to the binary file
+    /// - Returns: Array of matching patch sets
+    func getPatchSets(forBinaryAt binaryPath: String) -> [BinaryPatchSet] {
+        return queue.sync {
+            let standardizedPath = URL(fileURLWithPath: binaryPath).standardizedFileURL.path
+            return patchSets.values.filter { patchSet in
+                guard let targetPath = patchSet.targetPath else { return false }
+                let standardizedTarget = URL(fileURLWithPath: targetPath).standardizedFileURL.path
+                return standardizedTarget == standardizedPath
+            }.sorted { $0.updatedAt > $1.updatedAt }
+        }
     }
 
     // MARK: - Validation
@@ -415,6 +458,7 @@ final class BinaryPatchService {
 
 // MARK: - Errors
 
+/// Errors that can occur during patch set operations
 enum BinaryPatchServiceError: Error {
     case duplicatePatchSet
     case patchSetNotFound
@@ -422,4 +466,40 @@ enum BinaryPatchServiceError: Error {
     case patchNotFound
     case invalidPatchSet(reason: String)
     case invalidPatch(reason: String)
+}
+
+// MARK: - Error Extensions
+
+extension BinaryPatchServiceError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .duplicatePatchSet:
+            return "A patch set with this ID already exists"
+        case .patchSetNotFound:
+            return "The requested patch set could not be found"
+        case .duplicatePatch:
+            return "A patch with this ID already exists in the patch set"
+        case .patchNotFound:
+            return "The requested patch could not be found in the patch set"
+        case .invalidPatchSet(let reason):
+            return "Invalid patch set: \(reason)"
+        case .invalidPatch(let reason):
+            return "Invalid patch: \(reason)"
+        }
+    }
+    
+    var recoverySuggestion: String? {
+        switch self {
+        case .duplicatePatchSet:
+            return "Use a different patch set ID or update the existing patch set"
+        case .patchSetNotFound:
+            return "Verify the patch set ID and ensure it has been loaded"
+        case .duplicatePatch:
+            return "Use a different patch ID or update the existing patch"
+        case .patchNotFound:
+            return "Verify the patch ID and patch set ID are correct"
+        case .invalidPatchSet, .invalidPatch:
+            return "Check the validation error details and correct the issue"
+        }
+    }
 }

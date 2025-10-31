@@ -2,6 +2,7 @@ import Foundation
 
 // MARK: - Symbolic Execution Engine for Register Tracking
 
+/// Represents possible values that can be stored in registers during symbolic execution
 private enum RegisterValue {
     case unknown
     case constant(UInt64)
@@ -10,6 +11,7 @@ private enum RegisterValue {
     case copyFrom(Int)
 }
 
+/// Tracks register state during symbolic execution for accurate address resolution
 private class RegisterState {
     private var registers: [Int: RegisterValue] = [:]
     
@@ -45,6 +47,9 @@ private class RegisterState {
     }
 }
 
+/// Analyzer for cross-references (xrefs) in disassembled code
+/// Uses symbolic execution to track register values and resolve addresses
+/// Identifies calls, jumps, and data references between functions and memory locations
 class XrefAnalyzer {
     
     // MARK: - ARM64 Instruction Patterns
@@ -65,6 +70,11 @@ class XrefAnalyzer {
     
     // MARK: - Public Analysis Method
     
+    /// Analyzes disassembled code to identify cross-references
+    /// - Parameters:
+    ///   - disassembly: String containing disassembled instructions
+    ///   - symbols: Array of known symbols for resolution
+    /// - Returns: Analysis result containing all identified cross-references
     static func analyze(disassembly: String, symbols: [SymbolInfo]) -> XrefAnalysisResult {
         print("Starting xref analysis...")
         let startTime = CFAbsoluteTimeGetCurrent()
@@ -552,6 +562,53 @@ class XrefAnalyzer {
         }
         
         return result
+    }
+    
+    // MARK: - Utility Methods
+    
+    /// Filters cross-references by type
+    /// - Parameters:
+    ///   - xrefs: Array of cross-references to filter
+    ///   - type: The xref type to filter by
+    /// - Returns: Filtered array of cross-references
+    static func filterXrefs(_ xrefs: [CrossReference], byType type: XrefType) -> [CrossReference] {
+        return xrefs.filter { $0.xrefType == type }
+    }
+    
+    /// Groups cross-references by their from address
+    /// - Parameter xrefs: Array of cross-references to group
+    /// - Returns: Dictionary mapping from addresses to their xrefs
+    static func groupXrefsByFromAddress(_ xrefs: [CrossReference]) -> [UInt64: [CrossReference]] {
+        return Dictionary(grouping: xrefs) { $0.fromAddress }
+    }
+    
+    /// Groups cross-references by their target address
+    /// - Parameter xrefs: Array of cross-references to group
+    /// - Returns: Dictionary mapping target addresses to their xrefs
+    static func groupXrefsByToAddress(_ xrefs: [CrossReference]) -> [UInt64: [CrossReference]] {
+        return Dictionary(grouping: xrefs) { $0.toAddress }
+    }
+    
+    /// Finds all callers of a specific function
+    /// - Parameters:
+    ///   - address: The function address to find callers for
+    ///   - xrefs: Array of all cross-references
+    /// - Returns: Array of addresses that call this function
+    static func findCallers(of address: UInt64, in xrefs: [CrossReference]) -> [UInt64] {
+        return xrefs
+            .filter { $0.toAddress == address && $0.xrefType == .call }
+            .map { $0.fromAddress }
+    }
+    
+    /// Finds all functions called by a specific function
+    /// - Parameters:
+    ///   - address: The function address to analyze
+    ///   - xrefs: Array of all cross-references
+    /// - Returns: Array of addresses called by this function
+    static func findCallees(of address: UInt64, in xrefs: [CrossReference]) -> [UInt64] {
+        return xrefs
+            .filter { $0.fromAddress == address && $0.xrefType == .call }
+            .map { $0.toAddress }
     }
 }
 
