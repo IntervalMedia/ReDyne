@@ -1,7 +1,12 @@
 import Foundation
 
+/// Analyzer for code signatures and entitlements in Mach-O binaries
+/// Extracts signing information, team IDs, bundle IDs, and entitlements
 @objc class CodeSignatureAnalyzer: NSObject {
     
+    /// Analyzes the code signature of a Mach-O binary
+    /// - Parameter machOContext: Opaque pointer to the MachO parsing context
+    /// - Returns: Analysis result containing signature info and entitlements, or nil if no signature
     @objc static func analyze(machOContext: OpaquePointer) -> CodeSigningAnalysis? {
         let ctx = UnsafeMutablePointer<MachOContext>(machOContext)
         

@@ -2,6 +2,7 @@ import Foundation
 
 // MARK: - Symbolic Execution Engine for Register Tracking
 
+/// Represents possible values that can be stored in registers during symbolic execution
 private enum RegisterValue {
     case unknown
     case constant(UInt64)
@@ -10,6 +11,7 @@ private enum RegisterValue {
     case copyFrom(Int)
 }
 
+/// Tracks register state during symbolic execution for accurate address resolution
 private class RegisterState {
     private var registers: [Int: RegisterValue] = [:]
     
@@ -45,6 +47,9 @@ private class RegisterState {
     }
 }
 
+/// Analyzer for cross-references (xrefs) in disassembled code
+/// Uses symbolic execution to track register values and resolve addresses
+/// Identifies calls, jumps, and data references between functions and memory locations
 class XrefAnalyzer {
     
     // MARK: - ARM64 Instruction Patterns
@@ -65,6 +70,11 @@ class XrefAnalyzer {
     
     // MARK: - Public Analysis Method
     
+    /// Analyzes disassembled code to identify cross-references
+    /// - Parameters:
+    ///   - disassembly: String containing disassembled instructions
+    ///   - symbols: Array of known symbols for resolution
+    /// - Returns: Analysis result containing all identified cross-references
     static func analyze(disassembly: String, symbols: [SymbolInfo]) -> XrefAnalysisResult {
         print("Starting xref analysis...")
         let startTime = CFAbsoluteTimeGetCurrent()

@@ -1,7 +1,12 @@
 import Foundation
 
+/// Analyzer for Control Flow Graphs (CFG) of functions
+/// Performs static analysis to construct control flow graphs from disassembled code
 @objc class CFGAnalyzer: NSObject {
     
+    /// Analyzes functions to generate control flow graphs
+    /// - Parameter functions: Array of functions to analyze
+    /// - Returns: Analysis result containing CFGs for all analyzed functions
     @objc static func analyze(functions: [FunctionModel]) -> CFGAnalysisResult {
         print("   Analyzing control flow graphs...")
         print("   Total functions to analyze: \(functions.count)")
@@ -33,6 +38,9 @@ import Foundation
         return result
     }
     
+    /// Analyzes a single function to construct its control flow graph
+    /// - Parameter function: The function to analyze
+    /// - Returns: Control flow graph for the function, or nil if analysis fails
     private static func analyzeFunctionCFG(_ function: FunctionModel) -> FunctionCFG? {
         guard let instructions = function.instructions as? [InstructionModel], !instructions.isEmpty else { return nil }
         

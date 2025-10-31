@@ -1,5 +1,7 @@
 import Foundation
 
+/// Service for managing binary patch sets
+/// Provides thread-safe operations for creating, updating, and applying patches to binary files
 final class BinaryPatchService {
     static let shared = BinaryPatchService()
 
@@ -14,7 +16,9 @@ final class BinaryPatchService {
     private init() {}
 
     // MARK: - Public API
-
+    
+    /// Loads all patch sets from disk into memory
+    /// This method is thread-safe and only loads once
     func loadPatchSets() {
         queue.sync {
             guard !cacheLoaded else { return }
@@ -23,13 +27,18 @@ final class BinaryPatchService {
             cacheLoaded = true
         }
     }
-
+    
+    /// Returns all patch sets sorted by update date (newest first)
+    /// - Returns: Array of patch sets
     func getAllPatchSets() -> [BinaryPatchSet] {
         queue.sync {
             patchSets.values.sorted { $0.updatedAt > $1.updatedAt }
         }
     }
-
+    
+    /// Retrieves a specific patch set by ID
+    /// - Parameter id: UUID of the patch set
+    /// - Returns: The patch set if found, nil otherwise
     func getPatchSet(with id: UUID) -> BinaryPatchSet? {
         queue.sync { patchSets[id] }
     }

@@ -1,16 +1,20 @@
 import Foundation
 import UIKit
+import PDFKit
 
+/// Supported export formats for decompiled binary analysis
 enum ExportFormat {
     case text
     case json
     case html
+    case pdf
     
     var fileExtension: String {
         switch self {
         case .text: return "txt"
         case .json: return "json"
         case .html: return "html"
+        case .pdf: return "pdf"
         }
     }
     
@@ -19,6 +23,7 @@ enum ExportFormat {
         case .text: return "text/plain"
         case .json: return "application/json"
         case .html: return "text/html"
+        case .pdf: return "application/pdf"
         }
     }
     
@@ -27,14 +32,22 @@ enum ExportFormat {
         case .text: return "Plain Text"
         case .json: return "JSON"
         case .html: return "HTML Report"
+        case .pdf: return "PDF Document"
         }
     }
 }
 
+/// Service for exporting decompiled output in various formats
+/// Supports text, JSON, HTML, and PDF export formats
 class ExportService {
     
     // MARK: - Public Export Methods
     
+    /// Exports decompiled output in the specified format
+    /// - Parameters:
+    ///   - output: The decompiled binary output to export
+    ///   - format: The desired export format
+    /// - Returns: Data containing the exported content, or nil if export fails
     static func export(_ output: DecompiledOutput, format: ExportFormat) -> Data? {
         switch format {
         case .text:
@@ -43,13 +56,27 @@ class ExportService {
             return exportAsJSON(output)
         case .html:
             return exportAsHTML(output)
+        case .pdf:
+            return exportAsPDF(output)
         }
     }
     
+    /// Generates a unique filename for exported output
+    /// - Parameters:
+    ///   - output: The decompiled output
+    ///   - format: The export format
+    /// - Returns: A timestamped filename with appropriate extension
     static func generateFilename(for output: DecompiledOutput, format: ExportFormat) -> String {
         let baseName = (output.fileName as NSString).deletingPathExtension
         let timestamp = DateFormatter.filenameDateFormatter.string(from: Date())
         return "\(baseName)_analysis_\(timestamp).\(format.fileExtension)"
+    }
+    
+    /// Validates that the output is suitable for export
+    /// - Parameter output: The decompiled output to validate
+    /// - Returns: true if output can be exported, false otherwise
+    static func canExport(_ output: DecompiledOutput) -> Bool {
+        return !output.fileName.isEmpty && output.fileSize > 0
     }
     
     // MARK: - Text Export
@@ -558,6 +585,253 @@ class ExportService {
         """
         
         return html.data(using: .utf8)
+    }
+    
+    // MARK: - PDF Export
+    
+    /// Exports the decompiled output as a formatted PDF document
+    /// - Parameter output: The decompiled output to export
+    /// - Returns: PDF data or nil if generation fails
+    private static func exportAsPDF(_ output: DecompiledOutput) -> Data? {
+        // Create PDF with standard page size
+        let pageSize = CGRect(x: 0, y: 0, width: 612, height: 792) // US Letter
+        let pdfMetadata = [
+            kCGPDFContextTitle: "\(output.fileName) - ReDyne Analysis",
+            kCGPDFContextAuthor: "ReDyne v1.0",
+            kCGPDFContextCreator: "ReDyne Binary Analyzer"
+        ]
+        
+        let format = UIGraphicsPDFRendererFormat()
+        format.documentInfo = pdfMetadata as [String: Any]
+        
+        let renderer = UIGraphicsPDFRenderer(bounds: pageSize, format: format)
+        
+        let pdfData = renderer.pdfData { context in
+            // Page 1: Title and File Info
+            context.beginPage()
+            drawPDFTitlePage(output, in: context.cgContext, pageSize: pageSize)
+            
+            // Page 2: Header and Statistics
+            context.beginPage()
+            drawPDFHeaderPage(output, in: context.cgContext, pageSize: pageSize)
+            
+            // Page 3: Segments
+            context.beginPage()
+            drawPDFSegmentsPage(output, in: context.cgContext, pageSize: pageSize)
+            
+            // Page 4+: Symbols (if any)
+            if !output.symbols.isEmpty {
+                context.beginPage()
+                drawPDFSymbolsPage(output, in: context.cgContext, pageSize: pageSize)
+            }
+            
+            // Additional pages for strings if needed
+            if !output.strings.isEmpty {
+                context.beginPage()
+                drawPDFStringsPage(output, in: context.cgContext, pageSize: pageSize)
+            }
+        }
+        
+        return pdfData
+    }
+    
+    // MARK: - PDF Drawing Helpers
+    
+    private static func drawPDFTitlePage(_ output: DecompiledOutput, in context: CGContext, pageSize: CGRect) {
+        let margin: CGFloat = 50
+        var yPosition: CGFloat = margin
+        
+        // Draw title
+        let titleAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.boldSystemFont(ofSize: 32),
+            .foregroundColor: UIColor.systemBlue
+        ]
+        let title = "ReDyne Analysis Report"
+        let titleSize = title.size(withAttributes: titleAttributes)
+        let titlePoint = CGPoint(x: (pageSize.width - titleSize.width) / 2, y: yPosition)
+        title.draw(at: titlePoint, withAttributes: titleAttributes)
+        yPosition += titleSize.height + 40
+        
+        // Draw filename
+        let filenameAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 20),
+            .foregroundColor: UIColor.darkGray
+        ]
+        let filename = output.fileName
+        let filenameSize = filename.size(withAttributes: filenameAttributes)
+        let filenamePoint = CGPoint(x: (pageSize.width - filenameSize.width) / 2, y: yPosition)
+        filename.draw(at: filenamePoint, withAttributes: filenameAttributes)
+        yPosition += filenameSize.height + 60
+        
+        // Draw file info
+        let infoAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 14),
+            .foregroundColor: UIColor.black
+        ]
+        
+        let infoItems = [
+            "File Size: \(Constants.formatBytes(Int64(output.fileSize)))",
+            "Architecture: \(output.header.cpuType)",
+            "File Type: \(output.header.fileType)",
+            "Analysis Date: \(DateFormatter.reportDateFormatter.string(from: output.processingDate))",
+            "Processing Time: \(Constants.formatDuration(output.processingTime))"
+        ]
+        
+        for info in infoItems {
+            info.draw(at: CGPoint(x: margin, y: yPosition), withAttributes: infoAttributes)
+            yPosition += 25
+        }
+    }
+    
+    private static func drawPDFHeaderPage(_ output: DecompiledOutput, in context: CGContext, pageSize: CGRect) {
+        let margin: CGFloat = 50
+        var yPosition: CGFloat = margin
+        
+        let titleAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.boldSystemFont(ofSize: 24),
+            .foregroundColor: UIColor.systemBlue
+        ]
+        let textAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 12),
+            .foregroundColor: UIColor.black
+        ]
+        
+        // Mach-O Header Section
+        "Mach-O Header".draw(at: CGPoint(x: margin, y: yPosition), withAttributes: titleAttributes)
+        yPosition += 35
+        
+        let headerInfo = [
+            "CPU Type: \(output.header.cpuType)",
+            "File Type: \(output.header.fileType)",
+            "Architecture: \(output.header.is64Bit ? "64-bit" : "32-bit")",
+            "Load Commands: \(output.header.ncmds)",
+            "Flags: 0x\(String(format: "%X", output.header.flags))",
+            "Encrypted: \(output.header.isEncrypted ? "Yes" : "No")"
+        ]
+        
+        for info in headerInfo {
+            info.draw(at: CGPoint(x: margin, y: yPosition), withAttributes: textAttributes)
+            yPosition += 20
+        }
+        
+        yPosition += 20
+        
+        // Statistics Section
+        "Statistics".draw(at: CGPoint(x: margin, y: yPosition), withAttributes: titleAttributes)
+        yPosition += 35
+        
+        let statsInfo = [
+            "Total Symbols: \(output.totalSymbols)",
+            "  - Defined: \(output.definedSymbols)",
+            "  - Undefined: \(output.undefinedSymbols)",
+            "Total Strings: \(output.totalStrings)",
+            "Total Instructions: \(output.totalInstructions)",
+            "Total Functions: \(output.totalFunctions)",
+            "Segments: \(output.segments.count)",
+            "Sections: \(output.sections.count)"
+        ]
+        
+        for info in statsInfo {
+            info.draw(at: CGPoint(x: margin, y: yPosition), withAttributes: textAttributes)
+            yPosition += 20
+        }
+    }
+    
+    private static func drawPDFSegmentsPage(_ output: DecompiledOutput, in context: CGContext, pageSize: CGRect) {
+        let margin: CGFloat = 50
+        var yPosition: CGFloat = margin
+        
+        let titleAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.boldSystemFont(ofSize: 24),
+            .foregroundColor: UIColor.systemBlue
+        ]
+        let textAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.monospacedSystemFont(ofSize: 10, weight: .regular),
+            .foregroundColor: UIColor.black
+        ]
+        
+        "Segments (\(output.segments.count))".draw(at: CGPoint(x: margin, y: yPosition), withAttributes: titleAttributes)
+        yPosition += 35
+        
+        for segment in output.segments.prefix(20) {
+            let segmentLine = String(format: "%-16s  VM: %@-%@  File: 0x%llX-0x%llX  [%@]",
+                                   segment.name,
+                                   Constants.formatAddress(segment.vmAddress),
+                                   Constants.formatAddress(segment.vmAddress + segment.vmSize),
+                                   segment.fileOffset,
+                                   segment.fileOffset + segment.fileSize,
+                                   segment.protection)
+            
+            segmentLine.draw(at: CGPoint(x: margin, y: yPosition), withAttributes: textAttributes)
+            yPosition += 15
+            
+            if yPosition > pageSize.height - margin {
+                break
+            }
+        }
+    }
+    
+    private static func drawPDFSymbolsPage(_ output: DecompiledOutput, in context: CGContext, pageSize: CGRect) {
+        let margin: CGFloat = 50
+        var yPosition: CGFloat = margin
+        
+        let titleAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.boldSystemFont(ofSize: 24),
+            .foregroundColor: UIColor.systemBlue
+        ]
+        let textAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.monospacedSystemFont(ofSize: 9, weight: .regular),
+            .foregroundColor: UIColor.black
+        ]
+        
+        "Symbols (First 50 of \(output.symbols.count))".draw(at: CGPoint(x: margin, y: yPosition), withAttributes: titleAttributes)
+        yPosition += 35
+        
+        let sortedSymbols = output.symbols.sortedByAddress()
+        for symbol in sortedSymbols.prefix(50) {
+            let symbolLine = String(format: "%@  %-12s  %@",
+                                  Constants.formatAddress(symbol.address),
+                                  symbol.type,
+                                  String(symbol.name.prefix(60)))
+            
+            symbolLine.draw(at: CGPoint(x: margin, y: yPosition), withAttributes: textAttributes)
+            yPosition += 12
+            
+            if yPosition > pageSize.height - margin {
+                break
+            }
+        }
+    }
+    
+    private static func drawPDFStringsPage(_ output: DecompiledOutput, in context: CGContext, pageSize: CGRect) {
+        let margin: CGFloat = 50
+        var yPosition: CGFloat = margin
+        
+        let titleAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.boldSystemFont(ofSize: 24),
+            .foregroundColor: UIColor.systemBlue
+        ]
+        let textAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.monospacedSystemFont(ofSize: 9, weight: .regular),
+            .foregroundColor: UIColor.black
+        ]
+        
+        "Strings (First 50 of \(output.strings.count))".draw(at: CGPoint(x: margin, y: yPosition), withAttributes: titleAttributes)
+        yPosition += 35
+        
+        for string in output.strings.prefix(50) {
+            let stringLine = String(format: "%@  [%-12s]  %@",
+                                  Constants.formatAddress(string.address),
+                                  string.section,
+                                  String(string.content.prefix(50)))
+            
+            stringLine.draw(at: CGPoint(x: margin, y: yPosition), withAttributes: textAttributes)
+            yPosition += 12
+            
+            if yPosition > pageSize.height - margin {
+                break
+            }
+        }
     }
 }
 

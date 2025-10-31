@@ -1,8 +1,12 @@
 import Foundation
 
+/// Service for generating pseudocode from disassembled binary code
+/// Converts low-level assembly instructions into higher-level pseudocode representation
 public class PseudocodeService {
     
     // MARK: - Singleton
+    
+    /// Shared singleton instance
     public static let shared = PseudocodeService()
     
     // MARK: - Properties
@@ -10,6 +14,8 @@ public class PseudocodeService {
     private let queue = DispatchQueue(label: "com.redyne.pseudocode", qos: .userInitiated)
     
     // MARK: - Configuration
+    
+    /// Configuration options for pseudocode generation
     public struct Configuration {
         var verbosityLevel: Int32 = 2
         var showTypes: Bool = true
@@ -45,6 +51,12 @@ public class PseudocodeService {
     
     // MARK: - Public API
     
+    /// Generates pseudocode from disassembly text
+    /// - Parameters:
+    ///   - disassembly: Raw disassembly text (one instruction per line)
+    ///   - startAddress: Starting address of the function
+    ///   - functionName: Optional name of the function
+    /// - Returns: Result containing pseudocode output or error
     public func generatePseudocode(
         from disassembly: String,
         startAddress: UInt64,
@@ -101,6 +113,11 @@ public class PseudocodeService {
         }
     }
 
+    /// Generates pseudocode for a specific symbol in a binary
+    /// - Parameters:
+    ///   - symbolName: Name of the symbol/function to decompile
+    ///   - binaryPath: Path to the binary file
+    /// - Returns: Result containing pseudocode output or error
     public func generatePseudocode(
         forSymbol symbolName: String,
         inBinary binaryPath: String
@@ -154,6 +171,12 @@ public class PseudocodeService {
         )
     }
     
+    /// Generates pseudocode from raw bytes
+    /// - Parameters:
+    ///   - bytes: Raw instruction bytes to decompile
+    ///   - startAddress: Starting address of the code
+    ///   - architecture: Target architecture (default: ARM64)
+    /// - Returns: Result containing pseudocode output or error
     public func generatePseudocode(
         fromBytes bytes: Data,
         startAddress: UInt64,
