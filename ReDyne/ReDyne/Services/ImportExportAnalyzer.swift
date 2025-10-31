@@ -1,7 +1,12 @@
 import Foundation
 
+/// Analyzer for dynamic linking information in Mach-O binaries
+/// Extracts imports, exports, and library dependencies using dyld info
 @objc class ImportExportAnalyzer: NSObject {
     
+    /// Analyzes import/export information from a Mach-O binary
+    /// - Parameter machOContext: Opaque pointer to the MachO parsing context
+    /// - Returns: Analysis result containing imports, exports, and dependencies, or nil if parsing fails
     @objc static func analyze(machOContext: OpaquePointer) -> ImportExportAnalysis? {
         let ctx = UnsafeMutablePointer<MachOContext>(machOContext)
         
@@ -106,6 +111,9 @@ import Foundation
     
     // MARK: - Conversion Helpers
     
+    /// Converts C import info structure to Swift model
+    /// - Parameter importInfo: C structure containing import data
+    /// - Returns: Swift ImportedSymbol model or nil if conversion fails
     private static func convertImport(_ importInfo: ImportInfo) -> ImportedSymbol? {
         var infoCopy = importInfo
         
@@ -131,6 +139,9 @@ import Foundation
         )
     }
     
+    /// Converts C export info structure to Swift model
+    /// - Parameter exportInfo: C structure containing export data
+    /// - Returns: Swift ExportedSymbol model or nil if conversion fails
     private static func convertExport(_ exportInfo: ExportInfo) -> ExportedSymbol? {
         var infoCopy = exportInfo
         

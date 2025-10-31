@@ -1,8 +1,11 @@
 import Foundation
 
+/// Engine for applying binary patches to files
+/// Provides safe, validated patching with backup support and verification
 final class BinaryPatchEngine {
     static let shared = BinaryPatchEngine()
-
+    
+    /// Options for controlling patch application behavior
     struct ApplyOptions {
         var allowInPlaceWrite: Bool
         var forceApplyOnMismatch: Bool
@@ -24,7 +27,8 @@ final class BinaryPatchEngine {
             )
         }
     }
-
+    
+    /// Result of applying patches to a binary
     struct ApplyResult {
         let originalPath: String
         let outputPath: String
@@ -34,19 +38,22 @@ final class BinaryPatchEngine {
         let backupPath: String?
         let mismatchedPatches: [UUID]
     }
-
+    
+    /// Result of verifying patches against a binary
     struct VerificationResult {
         let isMatch: Bool
         let mismatches: [PatchMismatch]
     }
-
+    
+    /// Details about a patch that doesn't match the binary
     struct PatchMismatch {
         let patchID: UUID
         let offset: UInt64
         let expected: Data
         let actual: Data
     }
-
+    
+    /// Errors that can occur during patch operations
     enum Error: Swift.Error {
         case fileNotFound(path: String)
         case cannotRead(path: String, underlying: Swift.Error)
@@ -60,7 +67,14 @@ final class BinaryPatchEngine {
     }
 
     // MARK: - Public API
-
+    
+    /// Applies all enabled patches in a patch set to a binary
+    /// - Parameters:
+    ///   - patchSet: The patch set containing patches to apply
+    ///   - path: Path to the binary file
+    ///   - options: Application options (defaults to safe defaults)
+    /// - Throws: Error if patching fails
+    /// - Returns: Result containing details about the patching operation
     func apply(patchSet: BinaryPatchSet, toBinaryAt path: String, options: ApplyOptions = .default) throws -> ApplyResult {
         let enabledPatches = patchSet.patches.filter { $0.enabled }
         guard !enabledPatches.isEmpty else {
@@ -70,7 +84,14 @@ final class BinaryPatchEngine {
         try validatePatchSetConstraints(patchSet: patchSet, binaryPath: path)
         return try apply(patches: enabledPatches, toBinaryAt: path, options: options)
     }
-
+    
+    /// Applies a list of patches to a binary file
+    /// - Parameters:
+    ///   - patches: Array of patches to apply
+    ///   - path: Path to the binary file
+    ///   - options: Application options (defaults to safe defaults)
+    /// - Throws: Error if patching fails
+    /// - Returns: Result containing details about the patching operation
     func apply(patches: [BinaryPatch], toBinaryAt path: String, options: ApplyOptions = .default) throws -> ApplyResult {
         guard !patches.isEmpty else {
             throw Error.invalidPatchSet(reason: "No patches to apply")
@@ -155,7 +176,13 @@ final class BinaryPatchEngine {
             mismatchedPatches: mismatchedPatches
         )
     }
-
+    
+    /// Verifies that a single patch matches the binary content
+    /// - Parameters:
+    ///   - patch: The patch to verify
+    ///   - path: Path to the binary file
+    /// - Throws: Error if verification cannot be performed
+    /// - Returns: Verification result indicating match status
     func verify(patch: BinaryPatch, inBinaryAt path: String) throws -> VerificationResult {
         let resolvedURL = URL(fileURLWithPath: path).standardizedFileURL
         guard FileManager.default.fileExists(atPath: resolvedURL.path) else {
@@ -193,7 +220,13 @@ final class BinaryPatchEngine {
         )
         return VerificationResult(isMatch: false, mismatches: [mismatch])
     }
-
+    
+    /// Verifies that all enabled patches in a set match the binary content
+    /// - Parameters:
+    ///   - patchSet: The patch set to verify
+    ///   - path: Path to the binary file
+    /// - Throws: Error if verification cannot be performed
+    /// - Returns: Verification result with all mismatches
     func verify(patchSet: BinaryPatchSet, inBinaryAt path: String) throws -> VerificationResult {
         let resolvedURL = URL(fileURLWithPath: path).standardizedFileURL
         guard FileManager.default.fileExists(atPath: resolvedURL.path) else {
@@ -340,6 +373,54 @@ final class BinaryPatchEngine {
         } catch {
             try? FileManager.default.removeItem(at: backupURL)
             return nil
+        }
+    }
+}
+
+// MARK: - Error Extensions
+
+extension BinaryPatchEngine.Error: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .fileNotFound(let path):
+            return "File not found at path: \(path)"
+        case .cannotRead(let path, let error):
+            return "Cannot read file at \(path): \(error.localizedDescription)"
+        case .cannotWrite(let path, let error):
+            return "Cannot write file at \(path): \(error.localizedDescription)"
+        case .patchOutsideBounds(let patchID, let offset, let length, let fileSize):
+            return "Patch \(patchID) at offset 0x\(String(format: "%llX", offset)) with length \(length) exceeds file size (\(fileSize) bytes)"
+        case .originalBytesMismatch(let patchID, let offset, let expected, let actual):
+            return "Patch \(patchID) at offset 0x\(String(format: "%llX", offset)): expected \(expected.count) bytes but found different content"
+        case .overlappingPatches(let patchID, let overlapping, let range):
+            return "Patch \(patchID) overlaps with patch \(overlapping) in range 0x\(String(format: "%llX", range.lowerBound))-0x\(String(format: "%llX", range.upperBound))"
+        case .invalidPatchSet(let reason):
+            return "Invalid patch set: \(reason)"
+        case .uuidMismatch(let expected, let actual):
+            return "Binary UUID mismatch: expected \(expected.uuidString) but found \(actual.uuidString)"
+        case .architectureMismatch(let expected, let actual):
+            return "Architecture mismatch: expected \(expected) but found \(actual)"
+        }
+    }
+    
+    var recoverySuggestion: String? {
+        switch self {
+        case .fileNotFound:
+            return "Verify the file path and ensure the file exists"
+        case .cannotRead:
+            return "Check file permissions and ensure the file is readable"
+        case .cannotWrite:
+            return "Check file permissions and ensure the directory is writable"
+        case .patchOutsideBounds:
+            return "Verify that the patch was created for this binary version"
+        case .originalBytesMismatch:
+            return "The binary may have been modified. Use forceApplyOnMismatch option to apply anyway, or verify the patch set"
+        case .overlappingPatches:
+            return "Remove overlapping patches or adjust patch offsets"
+        case .invalidPatchSet:
+            return "Verify the patch set configuration and try again"
+        case .uuidMismatch, .architectureMismatch:
+            return "Ensure the patch set was created for this specific binary"
         }
     }
 }
