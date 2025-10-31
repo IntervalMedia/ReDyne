@@ -93,6 +93,21 @@ class ResultsViewController: UIViewController {
         )
     }()
     
+    private lazy var hexViewerViewController: HexViewerViewController? = {
+        let fileURL = URL(fileURLWithPath: output.filePath)
+        let segments = output.segments as NSArray as! [SegmentModel]
+        let sections = output.sections as NSArray as! [SectionModel]
+        let functions = output.functions as NSArray as! [FunctionModel]
+        let symbols = output.symbols as NSArray as! [SymbolModel]
+        return HexViewerViewController(
+            fileURL: fileURL,
+            segments: segments,
+            sections: sections,
+            functions: functions,
+            symbols: symbols
+        )
+    }()
+    
     // MARK: - Properties
     
     private let output: DecompiledOutput
@@ -411,6 +426,16 @@ extension ResultsViewController: AnalysisMenuDelegate {
             }
         case .memoryMap:
             navigationController?.pushViewController(memoryMapViewController, animated: true)
+        case .hexViewer:
+            if let hexViewerVC = hexViewerViewController {
+                navigationController?.pushViewController(hexViewerVC, animated: true)
+            } else {
+                showNoDataAvailable(type: "Hex Viewer")
+            }
+        case .pseudocode:
+            showPseudocodeViewController()
+        case .binaryPatching:
+            showBinaryPatchingViewController()
         }
     }
 }

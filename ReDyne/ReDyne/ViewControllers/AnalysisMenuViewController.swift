@@ -12,6 +12,7 @@ enum AnalysisType: String, CaseIterable {
     case signature = "Code Signature"
     case cfg = "Control Flow Graphs"
     case memoryMap = "Memory Map"
+    case hexViewer = "Hex Viewer"
     case pseudocode = "Pseudocode Generation"
     case binaryPatching = "Binary Patching"
     
@@ -24,6 +25,7 @@ enum AnalysisType: String, CaseIterable {
         case .signature: return "checkmark.seal"
         case .cfg: return "point.3.connected.trianglepath.dotted"
         case .memoryMap: return "square.stack.3d.up"
+        case .hexViewer: return "number.square"
         case .pseudocode: return "doc.text.magnifyingglass"
         case .binaryPatching: return "bandage"
         }
@@ -38,6 +40,7 @@ enum AnalysisType: String, CaseIterable {
         case .signature: return "Code signing and entitlements"
         case .cfg: return "Visual control flow graphs"
         case .memoryMap: return "Visual segment and section layout"
+        case .hexViewer: return "View binary data in hexadecimal format"
         case .pseudocode: return "High-level code reconstruction"
         case .binaryPatching: return "Apply and manage binary patches"
         }
