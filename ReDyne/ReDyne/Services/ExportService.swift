@@ -1,6 +1,5 @@
 import Foundation
 import UIKit
-import PDFKit
 
 /// Supported export formats for decompiled binary analysis
 enum ExportFormat {
@@ -76,7 +75,17 @@ class ExportService {
     /// - Parameter output: The decompiled output to validate
     /// - Returns: true if output can be exported, false otherwise
     static func canExport(_ output: DecompiledOutput) -> Bool {
-        return !output.fileName.isEmpty && output.fileSize > 0
+        // Basic validation
+        guard !output.fileName.isEmpty && output.fileSize > 0 else {
+            return false
+        }
+        
+        // Validate that header exists with required fields
+        guard !output.header.cpuType.isEmpty else {
+            return false
+        }
+        
+        return true
     }
     
     // MARK: - Text Export

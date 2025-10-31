@@ -1,4 +1,5 @@
 import Foundation
+import CommonCrypto
 
 /// Metadata associated with a saved binary file
 struct BinaryMetadata: Codable {
@@ -254,14 +255,38 @@ final class SavedBinaryStorage {
     }
     
     private func computeFileHash(at url: URL) throws -> String {
-        let data = try Data(contentsOf: url)
-        let hash = data.withUnsafeBytes { buffer in
-            var hash: UInt64 = 0
-            for byte in buffer {
-                hash = hash &* 31 &+ UInt64(byte)
-            }
-            return hash
+        // Use a streaming approach to avoid loading entire file into memory
+        guard let inputStream = InputStream(url: url) else {
+            throw NSError(domain: "SavedBinaryStorage", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Cannot open file for hashing"
+            ])
         }
-        return String(format: "%016llX", hash)
+        
+        inputStream.open()
+        defer { inputStream.close() }
+        
+        var context = CC_SHA256_CTX()
+        CC_SHA256_Init(&context)
+        
+        let bufferSize = 4096
+        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+        defer { buffer.deallocate() }
+        
+        while inputStream.hasBytesAvailable {
+            let bytesRead = inputStream.read(buffer, maxLength: bufferSize)
+            if bytesRead < 0 {
+                throw inputStream.streamError ?? NSError(domain: "SavedBinaryStorage", code: 2, userInfo: [
+                    NSLocalizedDescriptionKey: "Error reading file for hashing"
+                ])
+            }
+            if bytesRead > 0 {
+                CC_SHA256_Update(&context, buffer, CC_LONG(bytesRead))
+            }
+        }
+        
+        var digest = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
+        CC_SHA256_Final(&digest, &context)
+        
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
 }
