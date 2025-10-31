@@ -186,6 +186,28 @@ class HexViewerViewController: UIViewController, UITableViewDelegate, UITableVie
     
     private func loadBinaryData() {
         do {
+            // Check file size before loading
+            let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
+            if let fileSize = attributes[.size] as? Int64 {
+                // Warn if file is larger than 100MB
+                if fileSize > 100 * 1024 * 1024 {
+                    showLargeFileWarning(fileSize: fileSize) { [weak self] shouldContinue in
+                        if shouldContinue {
+                            self?.performDataLoad()
+                        }
+                    }
+                    return
+                }
+            }
+            
+            performDataLoad()
+        } catch {
+            showAlert(title: "Error", message: "Failed to load binary data: \(error.localizedDescription)")
+        }
+    }
+    
+    private func performDataLoad() {
+        do {
             binaryData = try Data(contentsOf: fileURL)
             filteredData = binaryData
             updateInfoLabel()
@@ -193,6 +215,24 @@ class HexViewerViewController: UIViewController, UITableViewDelegate, UITableVie
         } catch {
             showAlert(title: "Error", message: "Failed to load binary data: \(error.localizedDescription)")
         }
+    }
+    
+    private func showLargeFileWarning(fileSize: Int64, completion: @escaping (Bool) -> Void) {
+        let alert = UIAlertController(
+            title: "Large File Warning",
+            message: "This file is \(Constants.formatBytes(fileSize)). Loading large files may cause memory issues. Continue?",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+            completion(false)
+        })
+        
+        alert.addAction(UIAlertAction(title: "Load Anyway", style: .destructive) { _ in
+            completion(true)
+        })
+        
+        present(alert, animated: true)
     }
     
     private func updateInfoLabel() {
@@ -221,7 +261,9 @@ class HexViewerViewController: UIViewController, UITableViewDelegate, UITableVie
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "HexViewerCell", for: indexPath) as! HexViewerCell
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "HexViewerCell", for: indexPath) as? HexViewerCell else {
+            return UITableViewCell()
+        }
         
         guard let data = filteredData else { return cell }
         
@@ -512,16 +554,93 @@ class HexViewerViewController: UIViewController, UITableViewDelegate, UITableVie
     private func clearFilters() {
         activeFilters.removeAll()
         filteredData = binaryData
+        currentOffset = 0
         tableView.reloadData()
         updateInfoLabel()
     }
     
     private func applyFilters() {
-        // For now, just reload without filtering
-        // In a production implementation, this would filter the data based on sections
-        filteredData = binaryData
+        guard let data = binaryData else { return }
+        
+        // If no filters, show all data
+        if activeFilters.isEmpty {
+            filteredData = data
+            currentOffset = 0
+            tableView.reloadData()
+            updateInfoLabel()
+            return
+        }
+        
+        // Filter based on sections
+        var filteredSections: [SectionModel] = []
+        
+        if activeFilters.contains(.code) {
+            // Filter for executable sections (like __text)
+            filteredSections += sections.filter { section in
+                section.sectionName.contains("text") || 
+                section.sectionName.contains("stubs") ||
+                section.segmentName == "__TEXT"
+            }
+        }
+        
+        if activeFilters.contains(.data) {
+            // Filter for data sections
+            filteredSections += sections.filter { section in
+                section.sectionName.contains("data") ||
+                section.sectionName.contains("bss") ||
+                section.segmentName == "__DATA" ||
+                section.segmentName == "__DATA_CONST"
+            }
+        }
+        
+        if activeFilters.contains(.strings) {
+            // Filter for string sections
+            filteredSections += sections.filter { section in
+                section.sectionName.contains("string") ||
+                section.sectionName.contains("cstring")
+            }
+        }
+        
+        // If we have filtered sections, extract their data
+        if !filteredSections.isEmpty, let firstSection = filteredSections.first {
+            // For simplicity, show data from the first filtered section
+            // In a more sophisticated implementation, we'd concatenate all matching sections
+            let offset = Int(firstSection.offset)
+            let size = Int(firstSection.size)
+            
+            if offset < data.count && offset + size <= data.count {
+                filteredData = data[offset..<(offset + size)]
+                currentOffset = firstSection.address
+            } else {
+                filteredData = data
+                currentOffset = 0
+            }
+        } else {
+            filteredData = data
+            currentOffset = 0
+        }
+        
         tableView.reloadData()
         updateInfoLabel()
+        
+        // Show feedback
+        let toast = UILabel()
+        toast.text = "Filter applied: \(filteredSections.count) sections"
+        toast.backgroundColor = Constants.Colors.accentColor.withAlphaComponent(0.9)
+        toast.textColor = .white
+        toast.textAlignment = .center
+        toast.font = .systemFont(ofSize: 14, weight: .medium)
+        toast.frame = CGRect(x: 20, y: view.safeAreaInsets.top + 60, 
+                           width: view.bounds.width - 40, height: 44)
+        toast.layer.cornerRadius = 8
+        toast.clipsToBounds = true
+        view.addSubview(toast)
+        
+        UIView.animate(withDuration: 0.3, delay: 1.5, options: .curveEaseOut) {
+            toast.alpha = 0
+        } completion: { _ in
+            toast.removeFromSuperview()
+        }
     }
     
     // MARK: - Export
@@ -819,11 +938,27 @@ class FunctionPickerViewController: UITableViewController, UISearchBarDelegate {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
+        cell.textLabel?.text = nil
+        cell.detailTextLabel?.text = nil
+        
         let function = filteredFunctions[indexPath.row]
         
-        cell.textLabel?.text = function.name
-        cell.textLabel?.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
-        cell.detailTextLabel?.text = Constants.formatAddress(function.startAddress)
+        // Create a formatted string with function name and address
+        let nameFont = UIFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        let addressFont = UIFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+        
+        let nameText = "\(function.name)\n"
+        let addressText = Constants.formatAddress(function.startAddress)
+        
+        let attributedString = NSMutableAttributedString()
+        attributedString.append(NSAttributedString(string: nameText, attributes: [.font: nameFont]))
+        attributedString.append(NSAttributedString(string: addressText, attributes: [
+            .font: addressFont,
+            .foregroundColor: UIColor.secondaryLabel
+        ]))
+        
+        cell.textLabel?.attributedText = attributedString
+        cell.textLabel?.numberOfLines = 0
         
         return cell
     }
