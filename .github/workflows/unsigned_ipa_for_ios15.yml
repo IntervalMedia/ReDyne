@@ -18,7 +18,7 @@ jobs:
       - name: Set up Xcode version
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest
+          xcode-version: '15.0'
 
       - name: Install dependencies
         run: |
@@ -41,10 +41,8 @@ jobs:
           <dict>
             <key>method</key>
             <string>development</string>
-            <key>destination</key>
-            <string>export</string>
-            <key>iCloudContainerEnvironment</key>
-            <string>Development</string>
+            <key>signingStyle</key>
+            <string>manual</string>
             <key>compileBitcode</key>
             <false/>
           </dict>
@@ -54,21 +52,24 @@ jobs:
           # Clean build folder
           xcodebuild clean -workspace "$WORKSPACE" -scheme "$SCHEME"
 
-          # Build and archive
+          # Build and archive without code signing
           xcodebuild archive \
             -workspace "$WORKSPACE" \
             -scheme "$SCHEME" \
             -sdk iphoneos \
             -archivePath $RUNNER_TEMP/build/ReDyne.xcarchive \
             -destination 'generic/platform=iOS' \
-            -allowProvisioningUpdates \
-            -destination 'platform=iOS Simulator,name=iPhone 14,OS=15.0'
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            IPHONEOS_DEPLOYMENT_TARGET=15.0
 
           # Export .ipa
           xcodebuild -exportArchive \
             -archivePath $RUNNER_TEMP/build/ReDyne.xcarchive \
             -exportOptionsPlist $EXPORT_OPTIONS_PLIST \
-            -exportPath $RUNNER_TEMP/build
+            -exportPath $RUNNER_TEMP/build \
+            -allowProvisioningUpdates
 
       - name: Upload .ipa artifact
         uses: actions/upload-artifact@v4
