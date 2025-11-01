@@ -11,6 +11,7 @@ enum Constants {
         static let allowedExtensions = ["dylib", "so", ""]
         static let tempDirectoryName = "ReDyneTempFiles"
         static let patchSetsDirectoryName = "PatchSets"
+        static let savedBinariesDirectoryName = "SavedBinaries"
     }
     
     // MARK: - UI Configuration

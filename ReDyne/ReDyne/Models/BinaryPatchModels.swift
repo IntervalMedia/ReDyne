@@ -17,6 +17,7 @@ struct BinaryPatchSet: Codable, Identifiable {
     var createdAt: Date
     var updatedAt: Date
     var auditLog: [BinaryPatchAuditEntry]
+    var version: String
     
     enum Status: String, Codable {
         case draft
@@ -24,6 +25,17 @@ struct BinaryPatchSet: Codable, Identifiable {
         case applied
         case verified
         case failed
+        case archived
+    }
+    
+    /// Returns the count of enabled patches in this set
+    var enabledPatchCount: Int {
+        patches.filter { $0.enabled }.count
+    }
+    
+    /// Returns the total count of patches in this set
+    var patchCount: Int {
+        patches.count
     }
     
     init(
@@ -39,7 +51,8 @@ struct BinaryPatchSet: Codable, Identifiable {
         tags: [String] = [],
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
-        auditLog: [BinaryPatchAuditEntry] = []
+        auditLog: [BinaryPatchAuditEntry] = [],
+        version: String = "1.0.0"
     ) {
         self.id = id
         self.name = name
@@ -54,6 +67,7 @@ struct BinaryPatchSet: Codable, Identifiable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.auditLog = auditLog
+        self.version = version
     }
 }
 
@@ -64,55 +78,78 @@ struct BinaryPatch: Codable, Identifiable {
     let id: UUID
     var name: String
     var description: String?
+    var severity: Severity
+    var status: Status
+    var enabled: Bool
+    var virtualAddress: UInt64
     var fileOffset: UInt64
     var originalBytes: Data
     var patchedBytes: Data
-    var enabled: Bool
-    var status: Status
+    var createdAt: Date
+    var updatedAt: Date
+    var checksum: String
+    var notes: String?
     var verificationMessage: String?
     var expectedUUID: UUID?
     var expectedArchitecture: String?
     var tags: [String]
-    var createdAt: Date
-    var updatedAt: Date
+    
+    enum Severity: String, Codable {
+        case info
+        case low
+        case medium
+        case high
+        case critical
+    }
     
     enum Status: String, Codable {
+        case draft
+        case ready
         case pending
         case verified
         case failed
         case applied
+        case reverted
     }
     
     init(
         id: UUID = UUID(),
         name: String,
         description: String? = nil,
+        severity: Severity = .medium,
+        status: Status = .draft,
+        enabled: Bool = true,
+        virtualAddress: UInt64 = 0,
         fileOffset: UInt64,
         originalBytes: Data,
         patchedBytes: Data,
-        enabled: Bool = true,
-        status: Status = .pending,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date(),
+        checksum: String = "",
+        notes: String? = nil,
         verificationMessage: String? = nil,
         expectedUUID: UUID? = nil,
         expectedArchitecture: String? = nil,
-        tags: [String] = [],
-        createdAt: Date = Date(),
-        updatedAt: Date = Date()
+        tags: [String] = []
     ) {
         self.id = id
         self.name = name
         self.description = description
+        self.severity = severity
+        self.status = status
+        self.enabled = enabled
+        self.virtualAddress = virtualAddress
         self.fileOffset = fileOffset
         self.originalBytes = originalBytes
         self.patchedBytes = patchedBytes
-        self.enabled = enabled
-        self.status = status
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.checksum = checksum
+        self.notes = notes
         self.verificationMessage = verificationMessage
         self.expectedUUID = expectedUUID
         self.expectedArchitecture = expectedArchitecture
         self.tags = tags
-        self.createdAt = createdAt
-        self.updatedAt = updatedAt
     }
 }
 

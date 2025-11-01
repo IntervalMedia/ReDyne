@@ -37,6 +37,22 @@ enum MachOUtilities {
         return nil
     }
     
+    /// Calculates a checksum for a binary file
+    /// - Parameter path: Path to the binary file
+    /// - Returns: Checksum string
+    /// - Throws: Error if the file cannot be read
+    static func checksumForBinary(at path: String) throws -> String {
+        // This is a placeholder implementation
+        // In a real implementation, this would calculate SHA256 or similar
+        let fileURL = URL(fileURLWithPath: path)
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            throw MachOError.fileNotFound
+        }
+        
+        // TODO: Implement actual checksum calculation
+        return ""
+    }
+    
     enum MachOError: Error {
         case fileNotFound
         case invalidFormat
