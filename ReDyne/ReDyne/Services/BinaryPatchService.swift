@@ -45,7 +45,7 @@ final class BinaryPatchService {
 
     @discardableResult
     func createPatchSet(name: String, description: String? = nil, author: String? = nil) throws -> BinaryPatchSet {
-        var patchSet = BinaryPatchSet(name: name, description: description, author: author)
+        let patchSet = BinaryPatchSet(name: name, description: description, author: author)
         try addPatchSet(patchSet)
         return patchSet
     }

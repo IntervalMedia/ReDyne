@@ -215,7 +215,7 @@ class BinaryPatchDashboardViewController: UIViewController {
     
     private func updateStats() {
         let totalSets = patchSets.count
-        let totalPatches = patchSets.reduce(0) { $0 + $1.enabledPatchCount }
+        let totalPatches = patchSets.reduce(into: 0) { $0 += $1.enabledPatchCount }
         let readySets = patchSets.filter { $0.status == .ready }.count
         
         totalPatchSetsLabel.text = "\(totalSets) Sets"

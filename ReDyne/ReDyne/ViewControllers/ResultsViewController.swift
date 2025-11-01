@@ -386,6 +386,18 @@ extension ResultsViewController: UISearchBarDelegate {
         }
     }
     
+    private func showPseudocodeViewController() {
+        // Placeholder for pseudocode functionality
+        showNoDataAvailable(type: "Pseudocode")
+    }
+    
+    private func showBinaryPatchingViewController() {
+        // Navigate to binary patching dashboard
+        let binaryPath = output.filePath
+        let patchDashboard = BinaryPatchDashboardViewController(binaryPath: binaryPath)
+        navigationController?.pushViewController(patchDashboard, animated: true)
+    }
+    
     private func showNoDataAvailable(type: String) {
         let alert = UIAlertController(
             title: "No \(type) Data",
