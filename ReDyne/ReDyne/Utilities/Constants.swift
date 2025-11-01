@@ -10,6 +10,7 @@ enum Constants {
         static let maxFileSize: Int64 = 200 * 1024 * 1024
         static let allowedExtensions = ["dylib", "so", ""]
         static let tempDirectoryName = "ReDyneTempFiles"
+        static let patchSetsDirectoryName = "PatchSets"
     }
     
     // MARK: - UI Configuration
