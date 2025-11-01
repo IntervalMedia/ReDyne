@@ -393,12 +393,9 @@ extension ResultsViewController: UISearchBarDelegate {
     
     private func showBinaryPatchingViewController() {
         // Navigate to binary patching dashboard
-        if let binaryPath = output.filePath {
-            let patchDashboard = BinaryPatchDashboardViewController(binaryPath: binaryPath)
-            navigationController?.pushViewController(patchDashboard, animated: true)
-        } else {
-            showNoDataAvailable(type: "Binary Patching")
-        }
+        let binaryPath = output.filePath
+        let patchDashboard = BinaryPatchDashboardViewController(binaryPath: binaryPath)
+        navigationController?.pushViewController(patchDashboard, animated: true)
     }
     
     private func showNoDataAvailable(type: String) {

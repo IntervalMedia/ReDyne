@@ -425,7 +425,7 @@ class BinaryPatchEditorViewController: UIViewController, UITextFieldDelegate, UI
         default: severity = .medium
         }
         
-        let checksum = try? MachOUtilities.checksumForBinary(at: binaryPath) ?? ""
+        let checksum = (try? MachOUtilities.checksumForBinary(at: binaryPath)) ?? ""
         
         let newPatch = BinaryPatch(
             id: patch?.id ?? UUID(),
