@@ -603,6 +603,16 @@ class PatchSetCell: UITableViewCell {
             statusLabel.text = "APPLIED"
             statusLabel.textColor = .white
             statusBadge.backgroundColor = .systemGreen
+        case .verified:
+            iconLabel.text = "✓"
+            statusLabel.text = "VERIFIED"
+            statusLabel.textColor = .white
+            statusBadge.backgroundColor = .systemTeal
+        case .failed:
+            iconLabel.text = "✗"
+            statusLabel.text = "FAILED"
+            statusLabel.textColor = .white
+            statusBadge.backgroundColor = .systemRed
         case .archived:
             iconLabel.text = "📦"
             statusLabel.text = "ARCHIVED"
