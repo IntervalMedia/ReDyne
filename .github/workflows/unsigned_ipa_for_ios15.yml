@@ -27,7 +27,6 @@ jobs:
           PROJECT: ReDyne/ReDyne.xcodeproj
           WORKSPACE: ReDyne/ReDyne.xcodeproj/project.xcworkspace
           EXPORT_OPTIONS_PLIST: exportOptions.plist
-          
         run: |
           # Generate exportOptions.plist
           cat > $EXPORT_OPTIONS_PLIST <<EOF
@@ -45,13 +44,14 @@ jobs:
           </plist>
           EOF
 
-          # Clean then build for ios 15.0
+          # Clean then archive for ios 15.0
           set -o pipefail
-          xcodebuild clean build \
+          xcodebuild clean archive \
             -project "$PROJECT" \
             -scheme "$SCHEME" \
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/build/ReDyne.xcarchive" \
             IPHONEOS_DEPLOYMENT_TARGET=15.0 \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -63,7 +63,7 @@ jobs:
             -exportOptionsPlist $EXPORT_OPTIONS_PLIST \
             -exportPath $RUNNER_TEMP/build \
             -allowProvisioningUpdates
-            
+
       - name: Upload .ipa artifact
         uses: actions/upload-artifact@v4
         with:
