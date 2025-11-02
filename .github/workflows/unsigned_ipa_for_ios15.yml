@@ -9,10 +9,11 @@ on:
       - main
 jobs:
   build:
+    name: Build and export ipa for iOS 15.0
     runs-on: macos-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Xcode version
@@ -20,18 +21,13 @@ jobs:
         with:
           xcode-version: 'latest-stable'
 
-      - name: Install dependencies
-        run: |
-          if [ -f "Podfile" ]; then
-            sudo gem install cocoapods
-            pod install
-          fi
-
-      - name: Build .ipa for iOS 15+
+      - name: Build and Archive for iOS 15.0
         env:
           SCHEME: ReDyne
+          PROJECT: ReDyne/ReDyne.xcodeproj
           WORKSPACE: ReDyne/ReDyne.xcodeproj/project.xcworkspace
           EXPORT_OPTIONS_PLIST: exportOptions.plist
+          
         run: |
           # Generate exportOptions.plist
           cat > $EXPORT_OPTIONS_PLIST <<EOF
@@ -49,20 +45,17 @@ jobs:
           </plist>
           EOF
 
-          # Clean build folder
-          xcodebuild clean -workspace "$WORKSPACE" -scheme "$SCHEME"
-
-          # Build and archive without code signing
-          xcodebuild archive \
-            -workspace "$WORKSPACE" \
+          # Clean then build for ios 15.0
+          set -o pipefail
+          xcodebuild clean build \
+            -project "$PROJECT" \
             -scheme "$SCHEME" \
             -sdk iphoneos \
-            -archivePath $RUNNER_TEMP/build/ReDyne.xcarchive \
             -destination 'generic/platform=iOS' \
+            IPHONEOS_DEPLOYMENT_TARGET=15.0 \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            IPHONEOS_DEPLOYMENT_TARGET=15.0
+            CODE_SIGNING_ALLOWED=NO | xcpretty
 
           # Export .ipa
           xcodebuild -exportArchive \
@@ -70,7 +63,7 @@ jobs:
             -exportOptionsPlist $EXPORT_OPTIONS_PLIST \
             -exportPath $RUNNER_TEMP/build \
             -allowProvisioningUpdates
-
+            
       - name: Upload .ipa artifact
         uses: actions/upload-artifact@v4
         with:
