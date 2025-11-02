@@ -17,6 +17,10 @@
 
 ---
 
+> **Note:** This is a fork of [speedyfriend433/ReDyne](https://github.com/speedyfriend433/ReDyne) with additional enhancements and features. We are grateful to [speedyfriend433](https://github.com/speedyfriend433) for creating the original project and continue to build upon their excellent work.
+
+---
+
 ## 🎯 Overview
 
 ReDyne is a sophisticated, native iOS application for reverse engineering and analyzing Mach-O binaries (dylibs, frameworks, executables). Built from the ground up with production-grade C/Objective-C/Swift, it brings desktop-class decompilation capabilities to iOS devices.
@@ -202,7 +206,7 @@ ReDyne is a sophisticated, native iOS application for reverse engineering and an
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/speedyfriend433/ReDyne.git
+   git clone https://github.com/IntervalMedia/ReDyne.git
    cd ReDyne
    ```
 
@@ -379,7 +383,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ```
 MIT License
 
-Copyright (c) 2025 speedyfriend433
+Copyright (c) 2025 speedyfriend433 (Original Project)
+Copyright (c) 2025 IntervalMedia (Fork)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -402,9 +407,12 @@ SOFTWARE.
 
 ---
 
-## 👤 Author
+## 👤 Authors
 
-**speedyfriend433**
+**IntervalMedia** (Fork Maintainer)
+- GitHub: [@IntervalMedia](https://github.com/IntervalMedia)
+
+**speedyfriend433** (Original Author)
 - GitHub: [@speedyfriend433](https://github.com/speedyfriend433)
 - Email: speedyfriend433@gmail.com
 
@@ -412,6 +420,7 @@ SOFTWARE.
 
 ## 🙏 Acknowledgments
 
+- **speedyfriend433** - Original creator of [ReDyne](https://github.com/speedyfriend433/ReDyne)
 - **ARM Architecture Reference Manual** - Instruction encoding specifications
 - **Apple Mach-O Documentation** - File format details
 - **iOS Developer Community** - Testing and feedback
@@ -469,15 +478,15 @@ SOFTWARE.
 - ⚠️ Some complex ObjC runtime structures not yet parsed
 - ⚠️ x86_64 coverage is not 100% (ARM64 prioritized)
 
-See [Issues](https://github.com/speedyfriend433/ReDyne/issues) for full list.
+See [Issues](https://github.com/IntervalMedia/ReDyne/issues) for full list.
 
 ---
 
 ## 💬 Support
 
-- **Questions?** Open a [GitHub Discussion](https://github.com/speedyfriend433/ReDyne/discussions)
-- **Bug?** File an [Issue](https://github.com/speedyfriend433/ReDyne/issues)
-- **Email:** speedyfriend433@gmail.com
+- **Questions?** Open a [GitHub Discussion](https://github.com/IntervalMedia/ReDyne/discussions)
+- **Bug?** File an [Issue](https://github.com/IntervalMedia/ReDyne/issues)
+- **Original Project:** [speedyfriend433/ReDyne](https://github.com/speedyfriend433/ReDyne)
 
 ---
 
