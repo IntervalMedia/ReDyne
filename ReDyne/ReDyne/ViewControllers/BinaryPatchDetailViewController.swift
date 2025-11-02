@@ -342,6 +342,15 @@ class PatchCell: UITableViewCell {
         case .ready:
             statusLabel.text = "Ready"
             statusLabel.textColor = .systemBlue
+        case .pending:
+            statusLabel.text = "Pending"
+            statusLabel.textColor = .systemYellow
+        case .verified:
+            statusLabel.text = "Verified"
+            statusLabel.textColor = .systemTeal
+        case .failed:
+            statusLabel.text = "Failed"
+            statusLabel.textColor = .systemRed
         case .applied:
             statusLabel.text = "Applied"
             statusLabel.textColor = .systemGreen
