@@ -7,6 +7,123 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-11-02
+
+### 🎉 IntervalMedia Fork Release
+
+This release marks the first major update since forking from [speedyfriend433/ReDyne](https://github.com/speedyfriend433/ReDyne). We are grateful to speedyfriend433 for the excellent foundation and continue to build upon their work.
+
+### ✨ Added
+
+#### Hex Viewer (PR #2)
+- **Comprehensive Hex Viewer Implementation**
+  - 16-byte row display with address column, hex bytes, and ASCII representation
+  - Navigate to specific addresses with hex input validation (`0x1000` format)
+  - Navigate to functions via searchable picker
+  - Navigate to sections with quick-select from segment.section list
+  - Context menus on disassembly/function rows for direct hex viewer navigation
+  - Toggleable section annotations showing which section contains each address
+  - Large file warning (>100MB) to prevent memory issues
+- **Section Filtering**
+  - Filter by code sections (`__TEXT`, `__text`, `__stubs`)
+  - Filter by data sections (`__DATA`, `__bss`, `__data`)
+  - Filter by string sections (`__cstring`)
+  - Dynamic base address offset adjustment when filtering
+- **Export Formats**
+  - Text export: traditional hex dump format with address | hex | ASCII columns
+  - Binary export: raw data extraction for further analysis
+  - iOS share sheet integration for AirDrop/Files
+- **HEX_VIEWER_IMPLEMENTATION.md**: Complete documentation of hex viewer architecture and usage
+
+#### Services Layer Enhancements (PR #1)
+- **Export Service Improvements**
+  - PDF export implementation with multi-page generation using `UIGraphicsPDFRenderer`
+  - PDF pages include: title, header/stats, segments, symbols, strings
+  - Enhanced validation in `canExport()` checking critical fields
+- **Binary Storage Metadata System**
+  - Import date tracking
+  - File size recording
+  - SHA-256 hash computation (streaming for large files)
+  - Access count tracking
+  - Persistent JSON storage with `BinaryMetadata` model
+  - Analytics: `totalStorageSize()`, `savedBinaryCount()`, `getMetadata()`
+- **Patch Services**
+  - `BinaryPatchService`: Statistics aggregation, binary-specific patch discovery
+  - `BinaryPatchEngine`: LocalizedError conformance with recovery suggestions
+- **Analysis Utilities**
+  - `CFGAnalyzer`: `validateCFG()` for graph correctness, `calculateComplexity()` for metrics
+  - `XrefAnalyzer`: `findCallers()`, `findCallees()`, filtering/grouping utilities
+- **Comprehensive Documentation**
+  - Added docstrings to all public APIs across 10 service classes
+  - Parameter/return descriptions following Swift conventions
+
+#### Binary Patching System (PR #4)
+- **New Swift Type Definitions**
+  - `BinaryPatchModels.swift` with complete type structures
+  - `PatchTemplateLibrary.swift` with 6 common patch templates
+  - `MachOUtilities.swift` for binary file inspection
+  - `EnhancedFilePicker.swift` for improved file selection
+  - Updated `Constants.swift` with required constants
+- **Missing Properties Added**
+  - All missing properties to `BinaryPatchSet` and `BinaryPatch`
+  - Missing enums and cases
+  - Missing utility methods
+
+#### CI/CD Infrastructure (PR #3)
+- **GitHub Actions Workflow**
+  - `.github/workflows/ios16-build.yml` for iOS 16.0 builds
+  - Triggers on push/PR to main, plus manual dispatch
+  - Uses latest stable Xcode on macOS runner
+  - Builds with `IPHONEOS_DEPLOYMENT_TARGET=16.0`
+  - Disables code signing for CI consistency
+  - Explicit `permissions: contents: read` for minimal GITHUB_TOKEN scope
+
+### 🐛 Bug Fixes
+
+#### Switch Statement Exhaustiveness (PR #5)
+- Fixed non-exhaustive switch in `BinaryPatchDashboardViewController.swift`
+  - Added `.verified` case: displays "Verified" with teal color
+  - Added `.failed` case: displays "Failed" with red color
+- Fixed non-exhaustive switch in `BinaryPatchDetailViewController.swift`
+  - Added `.pending` case: displays "Pending" with default styling
+  - Added `.verified` case: displays "Verified" with teal color
+  - Added `.failed` case: displays "Failed" with red color
+
+#### ResultsViewController Fixes (PR #4)
+- Fixed `filePath` handling: changed from Optional to non-optional String
+- Fixed `BinaryPatchEditorViewController`: Added parentheses to fix nil coalescing precedence
+
+### 🛠️ Technical Improvements
+
+- Replaced weak custom hash with SHA-256 for integrity and collision prevention
+- Streaming file I/O to prevent memory issues with large binaries
+- Defensive cell dequeuing with `guard let` instead of force cast
+- Monospaced fonts for proper hex/ASCII alignment
+- Memory-safe export trie traversal
+
+### ♻️ Refactoring
+
+- Removed unused imports across service classes
+- Enhanced input validation throughout the codebase
+- Improved error handling with LocalizedError conformance
+
+### 🗑️ Removal
+
+#### Workflow Cleanup (PR #6)
+- Removed obsolete `.github/workflows/hexviewer-tests.yml` workflow file
+
+### 📚 Documentation
+
+- Added `HEX_VIEWER_IMPLEMENTATION.md` with comprehensive hex viewer documentation
+- Enhanced all service class documentation with docstrings
+- Updated contributing guidelines
+
+### 🙏 Acknowledgments
+
+This fork builds upon the excellent work by [speedyfriend433](https://github.com/speedyfriend433) and the original [ReDyne project](https://github.com/speedyfriend433/ReDyne). We are grateful for the solid foundation and continue to contribute improvements back to the iOS reverse engineering community.
+
+---
+
 ## [1.0.0] - 2025-10-06
 
 ### 🎉 Initial Release
@@ -180,7 +297,8 @@ The first production-ready release of ReDyne, a comprehensive iOS decompiler and
 
 ---
 
-[Unreleased]: https://github.com/speedyfriend433/ReDyne/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/IntervalMedia/ReDyne/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/IntervalMedia/ReDyne/releases/tag/v1.1.0
 [1.0.0]: https://github.com/speedyfriend433/ReDyne/releases/tag/v1.0.0
 [0.1.0]: https://github.com/speedyfriend433/ReDyne/releases/tag/v0.1.0
 
